@@ -33,7 +33,7 @@
 
 	onMount(() => {
 		console.log("onMount");
-		socket = new WebSocket("ws://"+window.location.host+"/ws");
+		socket = new WebSocket("wss://"+window.location.host+"/ws");
 		console.log(socket);
 		socket.onopen = () => {
 			console.log("Connected to server");
@@ -62,6 +62,11 @@
 			msgs = msgs
 		};
 	});
+
+	// webscoketのkeepalive
+	setInterval(() => {
+		socket.send("ping");
+	}, 10000);
 </script>
 
 <section class="flex flex-col justify-center w-screen min-h-screen bg-gray-100 text-gray-800 p-10">

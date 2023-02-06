@@ -49,8 +49,12 @@ func websock(c echo.Context) error {
 			for {
 				var msg Msg
 				err := websocket.JSON.Receive(ws, &msg)
-				if err != nil {
+				if err != nil && err.Error() == "EOF" {
 					c.Logger().Error(err)
+					break
+				}
+				if msg.Msg == "" {
+					continue
 				}
 				msg.ID = uuidObj.String()
 				c.Logger().Info("recive", msg)
@@ -69,12 +73,16 @@ func websock(c echo.Context) error {
 				msg.Own = false
 			}
 			err := websocket.JSON.Send(ws, msg)
-			if err != nil {
+			if err != nil && err.Error() == "EOF" {
 				c.Logger().Error(err)
 				break
 			}
 		}
 	}).ServeHTTP(c.Response(), c.Request())
+
+	// 接続切れ
+	delete(chans, uuidObj.String())
+
 	return nil
 }
 
