@@ -33,7 +33,7 @@
 
 	onMount(() => {
 		console.log("onMount");
-		socket = new WebSocket("ws://100.64.4.2:8010/ws");
+		socket = new WebSocket("ws://"+window.location.host+"/ws");
 		console.log(socket);
 		socket.onopen = () => {
 			console.log("Connected to server");
@@ -47,8 +47,19 @@
 				own: data.own,
 				id: data.id,
 			});
-			msgs = msgs;
-			scroll();
+			msgs = msgs
+			scroll()
+		};
+		socket.onclose = () => {
+			console.log("Disconnected from server");
+			msgs.push({
+				msg: "WebSocket Disconnected",
+				date: new Date().toLocaleString(),
+				name: "System",
+				own: false,
+				id: ""
+			});
+			msgs = msgs
 		};
 	});
 </script>
