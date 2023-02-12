@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +16,7 @@ import (
 )
 
 var chans = make(map[string]chan Msg)
+var Msgs = make([]Msg, 5)
 
 type Msg struct {
 	Msg  string `json:"msg"`
@@ -44,6 +47,19 @@ func websock(c echo.Context) error {
 		if err != nil {
 			c.Logger().Error(err)
 		}
+		// Msgsの最新を送信
+		// 逆順で取り出し
+		for i := len(Msgs) - 1; i >= 0; i-- {
+			if Msgs[i].Msg == "" {
+				continue
+			}
+			err := websocket.JSON.Send(ws, Msgs[i])
+			if err != nil {
+				c.Logger().Error(err)
+			}
+		}
+
+		log.Printf("Connected: ipaddr=%s uuid=%s", c.RealIP(), uuidObj.String())
 
 		go func() {
 			for {
@@ -56,8 +72,11 @@ func websock(c echo.Context) error {
 				if msg.Msg == "" {
 					continue
 				}
+				log.Printf("Recive: ipaddr=%s uuid=%s name=%s msg=%s", c.RealIP(), uuidObj.String(), msg.Name, msg.Msg)
 				msg.ID = uuidObj.String()
 				c.Logger().Info("recive", msg)
+				// Msgsの最新に追加
+				Msgs = append([]Msg{msg}, Msgs...)
 				for _, v := range chans {
 					v <- msg
 				}
@@ -88,6 +107,10 @@ func websock(c echo.Context) error {
 
 func main() {
 	e := echo.New()
+	e.IPExtractor = echo.ExtractIPFromXFFHeader(
+		echo.TrustLinkLocal(true),
+		echo.TrustIPRange(&net.IPNet{IP: net.IPv4(127, 0, 0, 0), Mask: net.IPv4Mask(255, 0, 0, 0)}),
+	)
 	e.HideBanner = true
 	e.HidePort = true
 	e.GET("/ws", websock)

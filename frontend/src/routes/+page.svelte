@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, tick } from "svelte";
+	import ReconnectingWebSocket from "reconnecting-websocket";
 
 	interface Message {
 		msg: string;
@@ -10,12 +11,12 @@
 	}
 	let msgs: Message[] = [];
 	let msg: string;
-	let socket: WebSocket;
+	let socket: ReconnectingWebSocket;
 	let name: string = "ななし";
 	let msgspace: Element;
 	let wsUri: string;
 
-	function sendEnterMessage(e) {
+	function sendEnterMessage(e: KeyboardEvent) {
 		if (e.key === "Enter") {
 			sendMessage();
 		}
@@ -46,7 +47,7 @@
 	};
 
 	function connect() {
-		socket = new WebSocket(wsUri);
+		socket = new ReconnectingWebSocket(wsUri);
 		console.log(socket);
 		socket.onopen = () => {
 			console.log("Connected to server");
@@ -69,18 +70,15 @@
 			scroll()
 		};
 		socket.onclose = () => {
-			console.log("接続が切れました。3秒後に再接続します。");
+			console.log("接続が切れました。");
 			msgs.push({
-				msg: "WebSocket Disconnected",
+				msg: "接続が切れました。",
 				date: new Date().toLocaleString(),
 				name: "System",
 				own: false,
 				id: ""
 			});
 			msgs = msgs
-			setTimeout(() => {
-				connect();
-			}, 3000);
 		};
 	});
 
