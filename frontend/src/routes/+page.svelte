@@ -13,6 +13,13 @@
 	let socket: WebSocket;
 	let name: string = "ななし";
 	let msgspace: Element;
+	let wsUri: string;
+
+	function sendEnterMessage(e) {
+		if (e.key === "Enter") {
+			sendMessage();
+		}
+	}
 
 	function sendMessage() {
 		if (msg == "") return;
@@ -26,18 +33,29 @@
 		msg = "";
 	}
 
+	// WebSocketの接続先判定
+	if (location.protocol == "https:") {
+		wsUri = "wss://" + location.host + "/ws";
+	} else {
+		wsUri = "ws://" + location.host + "/ws";
+	}
+
 	const scroll = async () => {
 		await tick();
 		msgspace.scrollTop = msgspace.scrollHeight;
 	};
 
-	onMount(() => {
-		console.log("onMount");
-		socket = new WebSocket("wss://"+window.location.host+"/ws");
+	function connect() {
+		socket = new WebSocket(wsUri);
 		console.log(socket);
 		socket.onopen = () => {
 			console.log("Connected to server");
 		};
+	}
+
+	onMount(() => {
+		console.log("onMount");
+		connect()
 		socket.onmessage = (e) => {
 			const data = JSON.parse(e.data);
 			msgs.push({
@@ -51,7 +69,7 @@
 			scroll()
 		};
 		socket.onclose = () => {
-			console.log("Disconnected from server");
+			console.log("接続が切れました。3秒後に再接続します。");
 			msgs.push({
 				msg: "WebSocket Disconnected",
 				date: new Date().toLocaleString(),
@@ -60,6 +78,9 @@
 				id: ""
 			});
 			msgs = msgs
+			setTimeout(() => {
+				connect();
+			}, 3000);
 		};
 	});
 
@@ -107,7 +128,7 @@
 			Name<input class="flex items-center h-10 w-100 rounded px-3 text-sm" type="text" bind:value={name} />
 		</div>
 		<div class="bg-gray-300 p-4">
-			<input class="flex items-center h-10 w-full rounded px-3 text-sm" type="text" placeholder="Type your message…" bind:value={msg} />
+			<input class="flex items-center h-10 w-full rounded px-3 text-sm" type="text" placeholder="Type your message…" bind:value={msg} on:keypress={sendEnterMessage}/>
 			<button class="flex items-center h-10 w-full rounded px-3 text-sm" on:click={sendMessage}>Send</button>
 		</div>
 	</div>
